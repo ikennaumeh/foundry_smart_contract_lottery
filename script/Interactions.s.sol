@@ -3,7 +3,8 @@ pragma solidity ^0.8.18;
 
 import {Script, console} from "forge-std/Script.sol";
 import {HelperConfig} from "./HelperConfig.s.sol";
-import {VRfCoodinatior2Mock} from "@chainlink/contracts/src/v0.8/mocks/VRfCoodinatiorV2Mock.sol";
+import {VRFCoordinatorV2Mock} from "@chainlink/contracts/src/v0.8/mocks/VRFCoordinatorV2Mock.sol";
+import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 
 contract CreateSubscription is Script {
     function CreateSubscriptionUsingConfig() public returns (uint64){
@@ -13,9 +14,9 @@ contract CreateSubscription is Script {
     }
 
     function createSubscription(address vrfCoordinator) public returns (uint64){
-        console.log("Creating subscription for chainId: "; block.chainid);
+        console.log("Creating subscription for chainId: ", block.chainid);
         vm.startBroadcast();
-        uint64 subId = VRfCoodinatior2Mock(vrfCoordinator).createSubscription();
+        uint64 subId = VRFCoordinatorV2Mock(vrfCoordinator).createSubscription();
 
         vm.stopBroadcast();
         console.log("Your sub id is: ", subId);
@@ -29,7 +30,35 @@ contract CreateSubscription is Script {
 }
 
 contract AddConsumer is Script {
-    constructor() {
+
+    function addConsumer(
+        address raffle,
+        address vrfCoordinator,
+        uint64 subId
+    ) public {
+        console.log("Adding consumer contract:", raffle);
+        console.log("Using vrfCoordinator: ",vrfCoordinator);
+        console.log("On chainid: ", block.chainid);
+
+        vm.startBroadcast();
+        VRFCoordinatorV2Mock(vrfCoordinator).addConsumer(subId, raffle);
+        vm.stopBroadcast();
+
+    }
+
+    function addConsumerUsingConfig(address raffle) public {
+        HelperConfig helperConfig = new HelperConfig();
         
+        (,, address vrfCoordinator,, uint64 subId,) =
+         helperConfig.activeNetworkConfig();
+
+         addConsumer(raffle, vrfCoordinator, subId);
+    }
+    function run () external{
+        address raffle = DevOpsTools.get_most_recent_deployment(
+            "Raffle",
+            block.chainid
+        );
+        addConsumerUsingConfig(raffle);
     }
 }
