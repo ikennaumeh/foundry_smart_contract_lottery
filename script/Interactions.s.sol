@@ -9,13 +9,13 @@ import {DevOpsTools} from "lib/foundry-devops/src/DevOpsTools.sol";
 contract CreateSubscription is Script {
     function CreateSubscriptionUsingConfig() public returns (uint64){
         HelperConfig helperConfig = new HelperConfig();
-        (,, address vrfCoordinator,,,) = helperConfig.activeNetworkConfig();
-        return createSubscription(vrfCoordinator);
+        (,, address vrfCoordinator,,,, uint256 deployerKey ) = helperConfig.activeNetworkConfig();
+        return createSubscription(vrfCoordinator, deployerKey);
     }
 
-    function createSubscription(address vrfCoordinator) public returns (uint64){
+    function createSubscription(address vrfCoordinator, uint256 deployerKey) public returns (uint64){
         console.log("Creating subscription for chainId: ", block.chainid);
-        vm.startBroadcast();
+        vm.startBroadcast(deployerKey);
         uint64 subId = VRFCoordinatorV2Mock(vrfCoordinator).createSubscription();
 
         vm.stopBroadcast();
@@ -34,13 +34,14 @@ contract AddConsumer is Script {
     function addConsumer(
         address raffle,
         address vrfCoordinator,
-        uint64 subId
+        uint64 subId,
+        uint256 deployerKey
     ) public {
         console.log("Adding consumer contract:", raffle);
         console.log("Using vrfCoordinator: ",vrfCoordinator);
         console.log("On chainid: ", block.chainid);
 
-        vm.startBroadcast();
+        vm.startBroadcast(deployerKey);
         VRFCoordinatorV2Mock(vrfCoordinator).addConsumer(subId, raffle);
         vm.stopBroadcast();
 
@@ -49,10 +50,10 @@ contract AddConsumer is Script {
     function addConsumerUsingConfig(address raffle) public {
         HelperConfig helperConfig = new HelperConfig();
         
-        (,, address vrfCoordinator,, uint64 subId,) =
+        (,, address vrfCoordinator,, uint64 subId,, uint256 deployerKey) =
          helperConfig.activeNetworkConfig();
 
-         addConsumer(raffle, vrfCoordinator, subId);
+         addConsumer(raffle, vrfCoordinator, subId, deployerKey);
     }
     function run () external{
         address raffle = DevOpsTools.get_most_recent_deployment(
